@@ -3,15 +3,16 @@ import { Canvas } from "@react-three/fiber";
 import { Html, OrbitControls, useGLTF } from "@react-three/drei";
 import ReactPlayer from "react-player";
 import { Box, Slider, Button, Typography } from "@mui/material";
-import videoUrll from "./assets/example.mp4";
+import * as THREE from "three";
+import { useFrame } from "@react-three/fiber";
+import Draggable from "react-draggable"; // Import react-draggable
+
 //
 // A helper component to load a GLB file.
-// We'll use the @react-three/drei 'useGLTF' hook.
 //
 function Model({ url, position, rotation, scale, animationSpeed }) {
   const { scene, animations } = useGLTF(url);
 
-  // If there's animation, we can use a mixer here
   const [mixer] = useState(() => new THREE.AnimationMixer());
   useEffect(() => {
     if (!animations?.length) return;
@@ -23,15 +24,9 @@ function Model({ url, position, rotation, scale, animationSpeed }) {
   }, [animations, scene, mixer]);
 
   // Update the mixer on every frame to control the animation speed
-  useEffect(() => {
-    let lastTime = 0;
-    function updateMixer(state, delta) {
-      // Multiply delta by animationSpeed for speed control
-      mixer.update(delta * animationSpeed);
-      lastTime += delta;
-    }
-    return state.subscribe(({ delta }) => updateMixer(state, delta));
-  }, [mixer, animationSpeed]);
+  useFrame((state, delta) => {
+    mixer.update(delta * animationSpeed);
+  });
 
   return (
     <group position={position} rotation={rotation} scale={scale}>
@@ -40,12 +35,9 @@ function Model({ url, position, rotation, scale, animationSpeed }) {
   );
 }
 
-const assetsVideoUrl = "./assets/example.mp4";
-const robotUrl = "./assets/Pathfinder_1k.glb";
-
 export default function App() {
-  const [videoUrl, setVideoUrl] = useState(assetsVideoUrl); // your mp4
-  const [modelUrl, setModelUrl] = useState(robotUrl); // your glb
+  const [videoUrl, setVideoUrl] = useState("/src/assets/example.mp4");
+  const [modelUrl, setModelUrl] = useState("/src/assets/Pathfinder_1k.glb");
 
   // Transform states
   const [modelPosition, setModelPosition] = useState([0, 0, 0]);
@@ -53,7 +45,6 @@ export default function App() {
   const [modelScale, setModelScale] = useState(1);
   const [animationSpeed, setAnimationSpeed] = useState(1);
 
-  // Video player state
   const videoRef = useRef(null);
   const [startTime, setStartTime] = useState(0);
 
@@ -69,43 +60,24 @@ export default function App() {
   const canvasWrapperRef = useRef(null);
 
   // A function to handle bounding rect calculation
-  // For real usage, you'd measure the actual 3D object in screen space.
-  // This example just draws a simple rectangle that "follows" the model.
   const updateBoundingRect = () => {
     if (!canvasWrapperRef.current) return;
 
-    console.log("Updating bounding rect");
-
-    // The "bounding box" here can be computed from the model's projected corners
-    // But as a quick hack, let's just imagine a box in the center.
-
-    // For example, let's place the bounding box around the center (0,0) in 3D
-    // which might project to the center of the canvas.
-    // A real approach would:
-    //   1) Use the object's boundingBox in 3D
-    //   2) Project corners with camera, get 2D x,y
-    //   3) Then find minX, minY, maxX, maxY
-    // but here we’ll keep it super-simple for demonstration.
-
     const rect = canvasWrapperRef.current.getBoundingClientRect();
-
-    // We'll just define a rectangle in the middle:
     const width = 150;
     const height = 250;
     const x = rect.width / 2 - width / 2;
     const y = rect.height / 2 - height / 2;
-
-    console.log({ x, y, width, height });
+    console.log('ket qua', x, y, width, height);
+    
 
     setBoundingRect({ x, y, width, height });
   };
 
   useEffect(() => {
-    // Example: update bounding rect whenever the transform changes
     updateBoundingRect();
   }, [modelPosition, modelRotation, modelScale]);
 
-  // Download bounding rect JSON
   const handleDownloadParams = () => {
     const data = JSON.stringify(boundingRect, null, 2);
     const blob = new Blob([data], { type: "application/json" });
@@ -117,11 +89,9 @@ export default function App() {
     URL.revokeObjectURL(url);
   };
 
-  // Example of controlling the video start time
-  // This sets the player time to "startTime" when user clicks "Set Start Time"
   const handleSetStartTime = () => {
     if (!videoRef.current) return;
-    // videoRef.current.seekTo(parseFloat(startTime), "seconds");
+    videoRef.current.seekTo(parseFloat(startTime), "seconds");
   };
 
   return (
@@ -137,7 +107,7 @@ export default function App() {
       <Box sx={{ position: "relative", width: "100%", aspectRatio: "16/9" }}>
         <ReactPlayer
           ref={videoRef}
-          url={videoUrll}
+          url={videoUrl}
           controls
           width="100%"
           height="100%"
@@ -151,27 +121,30 @@ export default function App() {
             top: 0,
             left: 0,
             width: "100%",
-            height: "100%",
+            height: "calc(100% - 60px)", // 40px for video controls
             pointerEvents: "none", // so user can still interact with video controls
           }}
         >
-          {/* <Canvas camera={{ position: [0, 0, 5], fov: 50 }}>
+          
+          <Canvas camera={{ position: [0, 0, 5], fov: 30 }}>
             <Suspense fallback={null}>
               <ambientLight intensity={0.8} />
-              <Model
-                url={modelUrl}
-                position={modelPosition}
-                rotation={modelRotation}
-                scale={modelScale}
-                animationSpeed={animationSpeed}
-              />
+                <group>
+                  <Model
+                    url={modelUrl}
+                    position={modelPosition}
+                    rotation={modelRotation}
+                    scale={modelScale}
+                    animationSpeed={animationSpeed}
+                  />
+                </group>
               <OrbitControls enablePan={false} enableRotate={false} />
             </Suspense>
-          </Canvas> */}
+          </Canvas>
 
-          {/* RED BOX overlay for bounding rect. Just a div absolutely positioned. */}
-          <Box
-            sx={{
+          {/* RED BOX overlay for bounding rect */}
+          <div
+            style={{
               position: "absolute",
               border: "2px solid red",
               boxSizing: "border-box",
@@ -179,6 +152,8 @@ export default function App() {
               top: boundingRect.y,
               width: boundingRect.width,
               height: boundingRect.height,
+              // should be updated with the sclae of the model
+              transform: `scale(${modelScale})`,
               pointerEvents: "none",
             }}
           />
@@ -189,7 +164,7 @@ export default function App() {
       <Box
         sx={{ marginTop: 2, display: "flex", flexDirection: "column", gap: 2 }}
       >
-        {/* Rotation (example: controlling Y rotation in degrees) */}
+        {/* Rotation */}
         <Box>
           <Typography variant="subtitle1">Rotation Y</Typography>
           <Slider
@@ -200,7 +175,6 @@ export default function App() {
             onChange={(_, val) => {
               const degrees = Array.isArray(val) ? val[0] : val;
               const radians = degrees * (Math.PI / 180);
-
               setModelRotation([modelRotation[0], radians, modelRotation[2]]);
             }}
           />
