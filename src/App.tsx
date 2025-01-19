@@ -2,7 +2,14 @@ import React, { useRef, useState, useEffect } from "react";
 import ReactPlayer from "react-player";
 import { Canvas, useFrame } from "@react-three/fiber";
 import { OrbitControls, useGLTF } from "@react-three/drei";
-import { Slider, Typography, Button, TextField, Box } from "@mui/material";
+import {
+  Slider,
+  Typography,
+  Button,
+  TextField,
+  Box,
+  Modal,
+} from "@mui/material";
 import * as THREE from "three";
 import "./styles.css";
 
@@ -48,10 +55,12 @@ const DraggableAnimatedModel = ({
   const handlePointerDown = (event) => {
     event.stopPropagation();
 
-    // Set the movement plane's position and normal
+    // Align the drag plane with the model's current position
     const object = ref.current;
     object.getWorldPosition(intersectPoint);
-    planeNormal.copy(event.camera.getWorldDirection(new THREE.Vector3()));
+
+    // Use a plane aligned to the camera's view
+    planeNormal.set(0, 0, 1); // Assuming Z is fixed; adjust as needed for your scene
     plane.current.setFromNormalAndCoplanarPoint(planeNormal, intersectPoint);
 
     setDragging(true);
@@ -92,6 +101,10 @@ const DraggableAnimatedModel = ({
 
   return (
     <group
+      onClick={(e) => {
+        e.stopPropagation();
+        console.log("Clicked model");
+      }}
       ref={ref}
       position={position}
       scale={[scale, scale, scale]} // Apply scale uniformly
@@ -119,6 +132,7 @@ const App = () => {
   const [videoCurrentTime, setVideoCurrentTime] = useState(0);
   const [isVideoPlaying, setIsVideoPlaying] = useState(true);
   const modelRef = useRef(null);
+  const [openModal, setOpenModal] = useState(false);
 
   const handleVideoProgress = (state) => {
     setVideoCurrentTime(state.playedSeconds);
@@ -132,7 +146,6 @@ const App = () => {
       min: { x: box.min.x, y: box.min.y, z: box.min.z },
       max: { x: box.max.x, y: box.max.y, z: box.max.z },
     };
-    console.log("Bounding Box:", boundingBox);
     return boundingBox;
   };
 
@@ -179,14 +192,13 @@ const App = () => {
           ref={videoRef}
           url="src/assets/example.mp4"
           playing={isVideoPlaying}
-          controls
           loop
           width="100%"
           height="100%"
           onProgress={handleVideoProgress}
         />
         <Canvas
-          // camera={{ position: [0.4, 0, 5], fov: 75 }} // Camera 5 units away from origin 
+          // camera={{ position: [0.4, 0, 5], fov: 75 }} // Camera 5 units away from origin
           style={{
             position: "absolute",
             top: 0,
@@ -198,7 +210,12 @@ const App = () => {
         >
           <ambientLight intensity={1} />
           <directionalLight position={[10, 10, 10]} intensity={1.5} />
-          <OrbitControls enablePan={false} enableZoom={false} enableDamping />
+          <OrbitControls
+            enablePan={false}
+            enableZoom={false}
+            enableDamping
+            enableRotate={false}
+          />
           <DraggableAnimatedModel
             url="src/assets/model.glb"
             position={position}
@@ -213,6 +230,29 @@ const App = () => {
           />
         </Canvas>
       </div>
+
+      <Box>
+        <Typography variant="h6">
+          Video Time: {Math.floor(videoCurrentTime)}
+        </Typography>
+      </Box>
+
+      {/* print bounding */}
+      <Modal
+        open={openModal}
+        onClose={() => setOpenModal(false)}
+        sx={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          background: "rgba(0, 0, 0, 0.5)",
+        }}
+      >
+        <Box>
+          <Typography variant="h6">Bounding Box</Typography>
+          <pre>{JSON.stringify(getBoundingBox(), null, 2)}</pre>
+        </Box>
+      </Modal>
       <Box
         className="controls-container"
         sx={{
@@ -231,14 +271,13 @@ const App = () => {
             max={10}
             step={0.1}
             onChange={(e, value) => {
-              console.log("value", value);
               setPosition([value, position[1], position[2]]);
             }}
             sx={{ width: 200 }}
           />
         </Box>
         <Box>
-          <Typography variant="h6">Move Right/Left (X Axis)</Typography>
+          <Typography variant="h6">Move Up/Down (Y Axis)</Typography>
           <Slider
             value={position[1]}
             min={-10}
@@ -331,7 +370,8 @@ const App = () => {
             }}
           />
         </Box>
-        <Box sx={{ display: "flex", gap: 1 }}>
+
+        <Box sx={{ display: "flex", gap: 1, maxHeight: 40 }}>
           <Button
             variant="contained"
             color="primary"
@@ -339,12 +379,9 @@ const App = () => {
           >
             Download Bounding Box
           </Button>
-        </Box>
 
-        {/* add button for start stop the video */}
-
-        <Box sx={{ display: "flex", gap: 1 }}>
           <Button
+            size="small"
             variant="contained"
             color="primary"
             onClick={() => setIsVideoPlaying(!isVideoPlaying)}
@@ -359,19 +396,17 @@ const App = () => {
           >
             {isAnimationRunning ? "Stop Animation" : "Start Animation"}
           </Button>
+
+          <Button
+            variant="contained"
+            color="primary"
+            onClick={() => setOpenModal(true)}
+          >
+            Print Bounding Box
+          </Button>
         </Box>
       </Box>
       {/* print here the Rect as json */}
-
-      <Box sx={{ display: "flex", gap: 1 }}>
-        <Button
-          variant="contained"
-          color="primary"
-          onClick={() => console.log(getBoundingBox())}
-        >
-          Print Bounding Box
-        </Button>
-      </Box>
     </div>
   );
 };
