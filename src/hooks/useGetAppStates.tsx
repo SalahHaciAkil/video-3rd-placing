@@ -1,4 +1,4 @@
-import React, { useRef, useState } from "react";
+import { useRef, useState } from "react";
 
 function useGetAppStates() {
   const videoRef = useRef(null);

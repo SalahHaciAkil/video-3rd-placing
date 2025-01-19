@@ -1,4 +1,4 @@
-import React, { useRef, useState, useEffect } from "react";
+import { useRef, useState, useEffect } from "react";
 import { useFrame } from "@react-three/fiber";
 import { useGLTF } from "@react-three/drei";
 import * as THREE from "three";
@@ -15,7 +15,7 @@ const DraggableAnimatedModel = ({
   reference,
 }) => {
   const ref = reference;
-  const { scene, animations } = useGLTF(url);
+  const { scene, animations } = useGLTF(url) as any;
   const mixer = useRef(null);
   const [dragging, setDragging] = useState(false);
 
@@ -46,13 +46,13 @@ const DraggableAnimatedModel = ({
   }, [scene, animations]);
 
   // Update animation speed and only run after the start time
-  useFrame((state, delta) => {
+  useFrame((_state, delta) => {
     if (
       mixer.current &&
       isAnimationRunning &&
       videoCurrentTime >= animationStartTime
     ) {
-      mixer.current.update(delta * animationSpeed);
+      (mixer.current as any).update(delta * animationSpeed);
     }
   });
 

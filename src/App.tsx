@@ -158,7 +158,7 @@ const App = () => {
             min={-10}
             max={10}
             step={0.1}
-            onChange={(e, value) => {
+            onChange={(_e, value) => {
               setPosition([value as number, position[1], position[2]]);
             }}
             sx={{ width: 200 }}
@@ -171,7 +171,7 @@ const App = () => {
             min={-10}
             max={10}
             step={0.1}
-            onChange={(e, value) => {
+            onChange={(_e, value) => {
               setPosition([position[0], value as number, position[2]]);
             }}
             sx={{ width: 200 }}
@@ -184,7 +184,7 @@ const App = () => {
             min={0.1}
             max={10}
             step={0.1}
-            onChange={(e, value) => setScale(value as number)}
+            onChange={(_e, value) => setScale(value as number)}
             sx={{ width: 200 }}
           />
         </Box>
@@ -195,7 +195,7 @@ const App = () => {
             min={0}
             max={360}
             step={1}
-            onChange={(e, value) => {
+            onChange={(_e, value) => {
               setXRotationDegrees(value as number);
               setRotation([
                 (value as number) * (Math.PI / 180),
@@ -213,7 +213,7 @@ const App = () => {
             min={0}
             max={360}
             step={1}
-            onChange={(e, value) => {
+            onChange={(_e, value) => {
               setYRotationDegrees(value as number);
               setRotation([
                 rotation[0],
@@ -231,7 +231,7 @@ const App = () => {
             min={0}
             max={360}
             step={1}
-            onChange={(e, value) => {
+            onChange={(_e, value) => {
               setRotation([
                 rotation[0],
                 rotation[1],
@@ -248,7 +248,7 @@ const App = () => {
             min={0}
             max={5}
             step={0.1}
-            onChange={(e, value) => setAnimationSpeed(value as number)}
+            onChange={(_e, value) => setAnimationSpeed(value as number)}
             sx={{ width: 200 }}
           />
         </Box>
