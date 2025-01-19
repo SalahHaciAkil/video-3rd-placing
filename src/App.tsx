@@ -14,6 +14,9 @@ import DraggableAnimatedModel from "./components/DraggableAnimatedModel";
 import BoundingBoxCoordinates from "./components/BoundingBoxCoordinates";
 import useGetAppStates from "./hooks/useGetAppStates";
 
+const glbFile = "src/assets/model.glb";
+const videoFile = "src/assets/example.mp4";
+
 const App = () => {
   const {
     videoRef,
@@ -59,7 +62,7 @@ const App = () => {
 
   return (
     <Box className="App">
-      <Typography variant="h1">3D Overlay on Video</Typography>
+      <Typography variant="h3">3D Overlay on Video</Typography>
       <Box
         className="video-container"
         ref={containerRef}
@@ -67,7 +70,7 @@ const App = () => {
       >
         <ReactPlayer
           ref={videoRef}
-          url="src/assets/example.mp4"
+          url={videoFile}
           playing={isVideoPlaying}
           loop
           width="100%"
@@ -94,7 +97,7 @@ const App = () => {
             enableRotate={false}
           />
           <DraggableAnimatedModel
-            url="src/assets/model.glb"
+            url={glbFile}
             position={position}
             setPosition={setPosition}
             scale={scale}
@@ -145,6 +148,7 @@ const App = () => {
           flexDirection: "row",
           flexWrap: "wrap",
           gap: 2,
+          backgroundColor: "#121212",
         }}
       >
         <Box>
@@ -281,7 +285,7 @@ const App = () => {
         </Box>
 
         {/* ... all your control boxes/buttons ... */}
-        <Box sx={{ display: "flex", gap: 1, maxHeight: 40 }}>
+        <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1, maxHeight: 40 }}>
           <Button
             variant="contained"
             color="primary"
