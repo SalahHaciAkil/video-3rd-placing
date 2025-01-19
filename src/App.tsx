@@ -26,14 +26,9 @@ const DraggableAnimatedModel = ({
   reference,
 }) => {
   const ref = reference;
-  const raycaster = useRef(new THREE.Raycaster());
-  const plane = useRef(new THREE.Plane());
-  const planeNormal = new THREE.Vector3();
-  const intersectPoint = new THREE.Vector3();
-  const [dragging, setDragging] = useState(false);
-
   const { scene, animations } = useGLTF(url);
   const mixer = useRef();
+  const [dragging, setDragging] = useState(false);
 
   // Setup animations
   useEffect(() => {
@@ -54,41 +49,24 @@ const DraggableAnimatedModel = ({
 
   const handlePointerDown = (event) => {
     event.stopPropagation();
-
-    // Align the drag plane with the model's current position
-    const object = ref.current;
-    object.getWorldPosition(intersectPoint);
-
-    // Use a plane aligned to the camera's view
-    planeNormal.set(0, 0, 1); // Assuming Z is fixed; adjust as needed for your scene
-    plane.current.setFromNormalAndCoplanarPoint(planeNormal, intersectPoint);
-
-    setDragging(true);
+    setDragging(true); // Start dragging
+    event.target.setPointerCapture(event.pointerId); // Capture pointer for consistent drag tracking
   };
 
   const handlePointerMove = (event) => {
-    if (!dragging) return;
+    if (!dragging) return; // Only move if dragging
     event.stopPropagation();
 
-    // Calculate mouse position in normalized device coordinates
-    const mouse = new THREE.Vector2(
-      (event.clientX / window.innerWidth) * 2 - 1,
-      -(event.clientY / window.innerHeight) * 2 + 1
-    );
-
-    // Update raycaster and find intersection with the plane
-    raycaster.current.setFromCamera(mouse, event.camera);
-    raycaster.current.ray.intersectPlane(plane.current, intersectPoint);
-
-    // Update the model's position
-    if (intersectPoint) {
-      setPosition([intersectPoint.x, intersectPoint.y, intersectPoint.z]);
-    }
+    // Convert mouse movement to position update
+    const deltaX = event.movementX * 0.01; // Adjust the multiplier to fine-tune sensitivity
+    const deltaY = -event.movementY * 0.01; // Inverted Y-axis for dragging
+    setPosition([position[0] + deltaX, position[1] + deltaY, position[2], 1]);
   };
 
   const handlePointerUp = (event) => {
     event.stopPropagation();
-    setDragging(false);
+    setDragging(false); // Stop dragging
+    event.target.releasePointerCapture(event.pointerId); // Release pointer capture
   };
 
   // Add a red border around the model
@@ -101,17 +79,13 @@ const DraggableAnimatedModel = ({
 
   return (
     <group
-      onClick={(e) => {
-        e.stopPropagation();
-        console.log("Clicked model");
-      }}
       ref={ref}
       position={position}
       scale={[scale, scale, scale]} // Apply scale uniformly
       rotation={rotation}
-      onPointerDown={handlePointerDown}
-      onPointerMove={handlePointerMove}
-      onPointerUp={handlePointerUp}
+      onPointerDown={handlePointerDown} // Start dragging on pointer down
+      onPointerMove={handlePointerMove} // Move while dragging
+      onPointerUp={handlePointerUp} // Stop dragging on pointer up
     >
       <primitive object={scene} />
     </group>
@@ -121,7 +95,7 @@ const DraggableAnimatedModel = ({
 const App = () => {
   const videoRef = useRef(null);
   const containerRef = useRef(null);
-  const [position, setPosition] = useState([0, 0, 0]);
+  const [position, setPosition] = useState([0, 0, 1]);
   const [scale, setScale] = useState(2);
   const [rotation, setRotation] = useState([0, 0, 0]);
   const [xRotationDegrees, setXRotationDegrees] = useState(0);
@@ -164,25 +138,6 @@ const App = () => {
     link.click();
   };
 
-  useEffect(() => {
-    const handleResize = () => {
-      const container = containerRef.current;
-      if (container) {
-        const canvas = container.querySelector("canvas");
-        if (canvas) {
-          canvas.style.width = `${container.clientWidth}px`;
-          canvas.style.height = `${container.clientHeight}px`;
-        }
-      }
-    };
-
-    window.addEventListener("resize", handleResize);
-    handleResize();
-
-    return () => {
-      window.removeEventListener("resize", handleResize);
-    };
-  }, []);
 
   return (
     <div className="App">
@@ -329,13 +284,32 @@ const App = () => {
           />
         </Box>
         <Box>
+          <Typography variant="h6">Z Rotation</Typography>
+          <Slider
+            value={rotation[2] * (180 / Math.PI)} // Convert radians to degrees
+            min={0}
+            max={360}
+            step={1}
+            onChange={(e, value) => {
+              setRotation([
+                rotation[0],
+                rotation[1],
+                value * (Math.PI / 180), // Convert degrees to radians
+              ]);
+            }}
+            sx={{ width: 200 }}
+          />
+        </Box>
+        <Box>
           <Typography variant="h6">Animation Speed</Typography>
           <Slider
             value={animationSpeed}
             min={0}
             max={5}
             step={0.1}
-            onChange={(e, value) => setAnimationSpeed(value)}
+            onChange={(e, value) => setAnimationSpeed(value)
+              
+            }
             sx={{ width: 200 }}
           />
         </Box>
