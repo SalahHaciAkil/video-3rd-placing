@@ -1,7 +1,6 @@
-import React, { useRef, useState, useEffect } from "react";
 import ReactPlayer from "react-player";
-import { Canvas, useFrame } from "@react-three/fiber";
-import { OrbitControls, useGLTF } from "@react-three/drei";
+import { Canvas } from "@react-three/fiber";
+import { OrbitControls } from "@react-three/drei";
 import {
   Slider,
   Typography,
@@ -10,127 +9,47 @@ import {
   Box,
   Modal,
 } from "@mui/material";
-import * as THREE from "three";
 import "./styles.css";
-
-const DraggableAnimatedModel = ({
-  url,
-  position,
-  setPosition,
-  scale,
-  rotation,
-  animationSpeed,
-  isAnimationRunning,
-  animationStartTime,
-  videoCurrentTime,
-  reference,
-}) => {
-  const ref = reference;
-  const { scene, animations } = useGLTF(url);
-  const mixer = useRef();
-  const [dragging, setDragging] = useState(false);
-
-  // Setup animations
-  useEffect(() => {
-    mixer.current = new THREE.AnimationMixer(scene);
-    animations.forEach((clip) => mixer.current.clipAction(clip).play());
-  }, [scene, animations]);
-
-  // Update animation speed and only run after the start time
-  useFrame((state, delta) => {
-    if (
-      mixer.current &&
-      isAnimationRunning &&
-      videoCurrentTime >= animationStartTime
-    ) {
-      mixer.current.update(delta * animationSpeed);
-    }
-  });
-
-  const handlePointerDown = (event) => {
-    event.stopPropagation();
-    setDragging(true); // Start dragging
-    event.target.setPointerCapture(event.pointerId); // Capture pointer for consistent drag tracking
-  };
-
-  const handlePointerMove = (event) => {
-    if (!dragging) return; // Only move if dragging
-    event.stopPropagation();
-
-    // Convert mouse movement to position update
-    const deltaX = event.movementX * 0.01; // Adjust the multiplier to fine-tune sensitivity
-    const deltaY = -event.movementY * 0.01; // Inverted Y-axis for dragging
-    setPosition([position[0] + deltaX, position[1] + deltaY, position[2], 1]);
-  };
-
-  const handlePointerUp = (event) => {
-    event.stopPropagation();
-    setDragging(false); // Stop dragging
-    event.target.releasePointerCapture(event.pointerId); // Release pointer capture
-  };
-
-  // Add a red border around the model
-  useEffect(() => {
-    if (ref.current) {
-      const helper = new THREE.BoxHelper(scene, 0xff0000);
-      ref.current.add(helper);
-    }
-  }, [scene]);
-
-  return (
-    <group
-      ref={ref}
-      position={position}
-      scale={[scale, scale, scale]} // Apply scale uniformly
-      rotation={rotation}
-      onPointerDown={handlePointerDown} // Start dragging on pointer down
-      onPointerMove={handlePointerMove} // Move while dragging
-      onPointerUp={handlePointerUp} // Stop dragging on pointer up
-    >
-      <primitive object={scene} />
-    </group>
-  );
-};
+import DraggableAnimatedModel from "./components/DraggableAnimatedModel";
+import BoundingBoxCoordinates from "./components/BoundingBoxCoordinates";
+import useGetAppStates from "./hooks/useGetAppStates";
 
 const App = () => {
-  const videoRef = useRef(null);
-  const containerRef = useRef(null);
-  const [position, setPosition] = useState([0, 0, 1]);
-  const [scale, setScale] = useState(2);
-  const [rotation, setRotation] = useState([0, 0, 0]);
-  const [xRotationDegrees, setXRotationDegrees] = useState(0);
-  const [yRotationDegrees, setYRotationDegrees] = useState(0);
-  const [animationSpeed, setAnimationSpeed] = useState(1);
-  const [isAnimationRunning, setIsAnimationRunning] = useState(true);
-  const [animationStartTime, setAnimationStartTime] = useState(0);
-  const [videoCurrentTime, setVideoCurrentTime] = useState(0);
-  const [isVideoPlaying, setIsVideoPlaying] = useState(true);
-  const modelRef = useRef(null);
-  const [openModal, setOpenModal] = useState(false);
+  const {
+    videoRef,
+    containerRef,
+    position,
+    setPosition,
+    scale,
+    setScale,
+    rotation,
+    setRotation,
+    xRotationDegrees,
+    setXRotationDegrees,
+    yRotationDegrees,
+    setYRotationDegrees,
+    animationSpeed,
+    setAnimationSpeed,
+    isAnimationRunning,
+    setIsAnimationRunning,
+    animationStartTime,
+    setAnimationStartTime,
+    videoCurrentTime,
+    setVideoCurrentTime,
+    isVideoPlaying,
+    setIsVideoPlaying,
+    modelRef,
+    openModal,
+    setOpenModal,
+    corners,
+    setCorners,
+  } = useGetAppStates();
 
   const handleVideoProgress = (state) => {
     setVideoCurrentTime(state.playedSeconds);
   };
-
-  const getBoundingBox = () => {
-    if (!modelRef.current) return null;
-
-    const box = new THREE.Box3().setFromObject(modelRef.current);
-    const boundingBox = {
-      min: { x: box.min.x, y: box.min.y, z: box.min.z },
-      max: { x: box.max.x, y: box.max.y, z: box.max.z },
-    };
-    return boundingBox;
-  };
-
   const downloadBoundingBox = () => {
-    const boundingBox = getBoundingBox();
-    if (!boundingBox) {
-      console.error("Bounding box could not be calculated.");
-      return;
-    }
-
-    const data = JSON.stringify(boundingBox, null, 2);
+    const data = JSON.stringify(corners, null, 2);
     const blob = new Blob([data], { type: "application/json" });
     const link = document.createElement("a");
     link.href = URL.createObjectURL(blob);
@@ -138,11 +57,14 @@ const App = () => {
     link.click();
   };
 
-
   return (
-    <div className="App">
-      <h1>3D Overlay on Video</h1>
-      <div className="video-container" ref={containerRef}>
+    <Box className="App">
+      <Typography variant="h1">3D Overlay on Video</Typography>
+      <Box
+        className="video-container"
+        ref={containerRef}
+        style={{ position: "relative" }}
+      >
         <ReactPlayer
           ref={videoRef}
           url="src/assets/example.mp4"
@@ -153,7 +75,6 @@ const App = () => {
           onProgress={handleVideoProgress}
         />
         <Canvas
-          // camera={{ position: [0.4, 0, 5], fov: 75 }} // Camera 5 units away from origin
           style={{
             position: "absolute",
             top: 0,
@@ -166,6 +87,7 @@ const App = () => {
           <ambientLight intensity={1} />
           <directionalLight position={[10, 10, 10]} intensity={1.5} />
           <OrbitControls
+            enabled
             enablePan={false}
             enableZoom={false}
             enableDamping
@@ -181,10 +103,17 @@ const App = () => {
             isAnimationRunning={isAnimationRunning}
             animationStartTime={animationStartTime}
             videoCurrentTime={videoCurrentTime}
-            reference={modelRef} // Attach ref to the model for bounding box calculations
+            reference={modelRef}
+          />
+          {/* New component to calculate bounding box corners */}
+          <BoundingBoxCoordinates
+            key={JSON.stringify(position)}
+            modelRef={modelRef}
+            containerRef={containerRef}
+            setCorners={setCorners}
           />
         </Canvas>
-      </div>
+      </Box>
 
       <Box>
         <Typography variant="h6">
@@ -192,7 +121,6 @@ const App = () => {
         </Typography>
       </Box>
 
-      {/* print bounding */}
       <Modal
         open={openModal}
         onClose={() => setOpenModal(false)}
@@ -203,11 +131,12 @@ const App = () => {
           background: "rgba(0, 0, 0, 0.5)",
         }}
       >
-        <Box>
-          <Typography variant="h6">Bounding Box</Typography>
-          <pre>{JSON.stringify(getBoundingBox(), null, 2)}</pre>
+        <Box mt={2}>
+          <Typography variant="h6">Bounding Box Corners:</Typography>
+          <pre>{JSON.stringify(corners, null, 2)}</pre>
         </Box>
       </Modal>
+
       <Box
         className="controls-container"
         sx={{
@@ -226,7 +155,7 @@ const App = () => {
             max={10}
             step={0.1}
             onChange={(e, value) => {
-              setPosition([value, position[1], position[2]]);
+              setPosition([value as number, position[1], position[2]]);
             }}
             sx={{ width: 200 }}
           />
@@ -239,7 +168,7 @@ const App = () => {
             max={10}
             step={0.1}
             onChange={(e, value) => {
-              setPosition([position[0], value, position[2]]);
+              setPosition([position[0], value as number, position[2]]);
             }}
             sx={{ width: 200 }}
           />
@@ -251,7 +180,7 @@ const App = () => {
             min={0.1}
             max={10}
             step={0.1}
-            onChange={(e, value) => setScale(value)}
+            onChange={(e, value) => setScale(value as number)}
             sx={{ width: 200 }}
           />
         </Box>
@@ -263,8 +192,12 @@ const App = () => {
             max={360}
             step={1}
             onChange={(e, value) => {
-              setXRotationDegrees(value);
-              setRotation([value * (Math.PI / 180), rotation[1], rotation[2]]);
+              setXRotationDegrees(value as number);
+              setRotation([
+                (value as number) * (Math.PI / 180),
+                rotation[1],
+                rotation[2],
+              ]);
             }}
             sx={{ width: 200 }}
           />
@@ -277,8 +210,12 @@ const App = () => {
             max={360}
             step={1}
             onChange={(e, value) => {
-              setYRotationDegrees(value);
-              setRotation([rotation[0], value * (Math.PI / 180), rotation[2]]);
+              setYRotationDegrees(value as number);
+              setRotation([
+                rotation[0],
+                (value as number) * (Math.PI / 180),
+                rotation[2],
+              ]);
             }}
             sx={{ width: 200 }}
           />
@@ -294,8 +231,8 @@ const App = () => {
               setRotation([
                 rotation[0],
                 rotation[1],
-                value * (Math.PI / 180), // Convert degrees to radians
-              ]);
+                (value as number) * (Math.PI / 180), // Convert degrees to radians
+              ] as number[]);
             }}
             sx={{ width: 200 }}
           />
@@ -307,9 +244,7 @@ const App = () => {
             min={0}
             max={5}
             step={0.1}
-            onChange={(e, value) => setAnimationSpeed(value)
-              
-            }
+            onChange={(e, value) => setAnimationSpeed(value as number)}
             sx={{ width: 200 }}
           />
         </Box>
@@ -345,6 +280,7 @@ const App = () => {
           />
         </Box>
 
+        {/* ... all your control boxes/buttons ... */}
         <Box sx={{ display: "flex", gap: 1, maxHeight: 40 }}>
           <Button
             variant="contained"
@@ -355,6 +291,13 @@ const App = () => {
           </Button>
 
           <Button
+            variant="contained"
+            color="primary"
+            onClick={() => setOpenModal(true)}
+          >
+            View Bounding Box
+          </Button>
+          <Button
             size="small"
             variant="contained"
             color="primary"
@@ -362,7 +305,6 @@ const App = () => {
           >
             {isVideoPlaying ? "Pause Video" : "Play Video"}
           </Button>
-
           <Button
             variant="contained"
             color="primary"
@@ -370,18 +312,9 @@ const App = () => {
           >
             {isAnimationRunning ? "Stop Animation" : "Start Animation"}
           </Button>
-
-          <Button
-            variant="contained"
-            color="primary"
-            onClick={() => setOpenModal(true)}
-          >
-            Print Bounding Box
-          </Button>
         </Box>
       </Box>
-      {/* print here the Rect as json */}
-    </div>
+    </Box>
   );
 };
 
