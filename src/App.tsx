@@ -78,6 +78,8 @@ const App = () => {
           onProgress={handleVideoProgress}
         />
         <Canvas
+          orthographic
+          camera={{ zoom: 100, position: [0, 0, 10] }}
           style={{
             position: "absolute",
             top: 0,
@@ -90,10 +92,8 @@ const App = () => {
           <ambientLight intensity={1} />
           <directionalLight position={[10, 10, 10]} intensity={1.5} />
           <OrbitControls
-            enabled
             enablePan={false}
             enableZoom={false}
-            enableDamping
             enableRotate={false}
           />
           <DraggableAnimatedModel
