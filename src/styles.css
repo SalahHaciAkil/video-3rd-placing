@@ -40,3 +40,26 @@
 .read-the-docs {
   color: #888;
 }
+
+.App {
+  text-align: center;
+}
+
+.video-container {
+  position: relative;
+  width: 80%;
+  margin: 0 auto;
+}
+
+.controls-container {
+  margin-top: 20px;
+  background: rgba(0, 0, 0, 0.5);
+  color: white;
+  padding: 10px;
+  border-radius: 8px;
+  display: inline-block;
+}
+
+canvas {
+  pointer-events: none;
+}
