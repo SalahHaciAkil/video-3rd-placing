@@ -68,8 +68,7 @@ export default function App() {
     const height = 250;
     const x = rect.width / 2 - width / 2;
     const y = rect.height / 2 - height / 2;
-    console.log('ket qua', x, y, width, height);
-    
+    console.log("ket qua", x, y, width, height);
 
     setBoundingRect({ x, y, width, height });
   };
@@ -125,20 +124,23 @@ export default function App() {
             pointerEvents: "none", // so user can still interact with video controls
           }}
         >
-          
           <Canvas camera={{ position: [0, 0, 5], fov: 30 }}>
             <Suspense fallback={null}>
               <ambientLight intensity={0.8} />
-                <group>
-                  <Model
-                    url={modelUrl}
-                    position={modelPosition}
-                    rotation={modelRotation}
-                    scale={modelScale}
-                    animationSpeed={animationSpeed}
-                  />
-                </group>
-              <OrbitControls enablePan={false} enableRotate={false} />
+              <group>
+                <Model
+                  url={modelUrl}
+                  position={modelPosition}
+                  rotation={modelRotation}
+                  scale={modelScale}
+                  animationSpeed={animationSpeed}
+                />
+              </group>
+              <OrbitControls
+                enablePan={false}
+                enableRotate={false}
+                enableZoom={false}
+              />{" "}
             </Suspense>
           </Canvas>
 
