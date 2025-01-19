@@ -14,8 +14,8 @@ import DraggableAnimatedModel from "./components/DraggableAnimatedModel";
 import BoundingBoxCoordinates from "./components/BoundingBoxCoordinates";
 import useGetAppStates from "./hooks/useGetAppStates";
 
-const glbFile = "src/assets/model.glb";
-const videoFile = "src/assets/example.mp4";
+const glbFile = "/model.glb";
+const videoFile = "/example.mp4";
 
 const App = () => {
   const {
