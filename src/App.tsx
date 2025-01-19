@@ -16,8 +16,9 @@ const DraggableAnimatedModel = ({
   isAnimationRunning,
   animationStartTime,
   videoCurrentTime,
+  reference,
 }) => {
-  const ref = useRef();
+  const ref = reference;
   const raycaster = useRef(new THREE.Raycaster());
   const plane = useRef(new THREE.Plane());
   const planeNormal = new THREE.Vector3();
@@ -117,28 +118,36 @@ const App = () => {
   const [animationStartTime, setAnimationStartTime] = useState(0);
   const [videoCurrentTime, setVideoCurrentTime] = useState(0);
   const [isVideoPlaying, setIsVideoPlaying] = useState(true);
+  const modelRef = useRef(null);
 
   const handleVideoProgress = (state) => {
     setVideoCurrentTime(state.playedSeconds);
   };
 
   const getBoundingBox = () => {
-    const box = new THREE.Box3().setFromObject(ref.current);
-    console.log("Bounding Box:", box);
-    return box;
+    if (!modelRef.current) return null;
+
+    const box = new THREE.Box3().setFromObject(modelRef.current);
+    const boundingBox = {
+      min: { x: box.min.x, y: box.min.y, z: box.min.z },
+      max: { x: box.max.x, y: box.max.y, z: box.max.z },
+    };
+    console.log("Bounding Box:", boundingBox);
+    return boundingBox;
   };
 
-  const downloadParameters = () => {
-    const data = JSON.stringify({
-      position,
-      scale,
-      rotation,
-      animationStartTime,
-    });
+  const downloadBoundingBox = () => {
+    const boundingBox = getBoundingBox();
+    if (!boundingBox) {
+      console.error("Bounding box could not be calculated.");
+      return;
+    }
+
+    const data = JSON.stringify(boundingBox, null, 2);
     const blob = new Blob([data], { type: "application/json" });
     const link = document.createElement("a");
     link.href = URL.createObjectURL(blob);
-    link.download = "parameters.json";
+    link.download = "boundingBox.json";
     link.click();
   };
 
@@ -177,6 +186,7 @@ const App = () => {
           onProgress={handleVideoProgress}
         />
         <Canvas
+          // camera={{ position: [0.4, 0, 5], fov: 75 }} // Camera 5 units away from origin 
           style={{
             position: "absolute",
             top: 0,
@@ -199,6 +209,7 @@ const App = () => {
             isAnimationRunning={isAnimationRunning}
             animationStartTime={animationStartTime}
             videoCurrentTime={videoCurrentTime}
+            reference={modelRef} // Attach ref to the model for bounding box calculations
           />
         </Canvas>
       </div>
@@ -212,6 +223,33 @@ const App = () => {
           gap: 2,
         }}
       >
+        <Box>
+          <Typography variant="h6">Move Right/Left (X Axis)</Typography>
+          <Slider
+            value={position[0]}
+            min={-10}
+            max={10}
+            step={0.1}
+            onChange={(e, value) => {
+              console.log("value", value);
+              setPosition([value, position[1], position[2]]);
+            }}
+            sx={{ width: 200 }}
+          />
+        </Box>
+        <Box>
+          <Typography variant="h6">Move Right/Left (X Axis)</Typography>
+          <Slider
+            value={position[1]}
+            min={-10}
+            max={10}
+            step={0.1}
+            onChange={(e, value) => {
+              setPosition([position[0], value, position[2]]);
+            }}
+            sx={{ width: 200 }}
+          />
+        </Box>
         <Box>
           <Typography variant="h6">Scale</Typography>
           <Slider
@@ -263,33 +301,6 @@ const App = () => {
           />
         </Box>
         <Box>
-          <Typography variant="h6">Move Right/Left (X Axis)</Typography>
-          <Slider
-            value={position[0]}
-            min={-10}
-            max={10}
-            step={0.1}
-            onChange={(e, value) => {
-              console.log("value", value);
-              setPosition([value, position[1], position[2]]);
-            }}
-            sx={{ width: 200 }}
-          />
-        </Box>
-        <Box>
-          <Typography variant="h6">Move Right/Left (X Axis)</Typography>
-          <Slider
-            value={position[1]}
-            min={-10}
-            max={10}
-            step={0.1}
-            onChange={(e, value) => {
-              setPosition([position[0], value, position[2]]);
-            }}
-            sx={{ width: 200 }}
-          />
-        </Box>
-        <Box>
           <TextField
             label="Animation Start Time (seconds)"
             type="number"
@@ -320,6 +331,46 @@ const App = () => {
             }}
           />
         </Box>
+        <Box sx={{ display: "flex", gap: 1 }}>
+          <Button
+            variant="contained"
+            color="primary"
+            onClick={downloadBoundingBox}
+          >
+            Download Bounding Box
+          </Button>
+        </Box>
+
+        {/* add button for start stop the video */}
+
+        <Box sx={{ display: "flex", gap: 1 }}>
+          <Button
+            variant="contained"
+            color="primary"
+            onClick={() => setIsVideoPlaying(!isVideoPlaying)}
+          >
+            {isVideoPlaying ? "Pause Video" : "Play Video"}
+          </Button>
+
+          <Button
+            variant="contained"
+            color="primary"
+            onClick={() => setIsAnimationRunning(!isAnimationRunning)}
+          >
+            {isAnimationRunning ? "Stop Animation" : "Start Animation"}
+          </Button>
+        </Box>
+      </Box>
+      {/* print here the Rect as json */}
+
+      <Box sx={{ display: "flex", gap: 1 }}>
+        <Button
+          variant="contained"
+          color="primary"
+          onClick={() => console.log(getBoundingBox())}
+        >
+          Print Bounding Box
+        </Button>
       </Box>
     </div>
   );
